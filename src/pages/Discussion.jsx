@@ -132,13 +132,15 @@ function Discussion() {
   const callMiloBot = async (userMessage) => {
     setIsLoadingBot(true);
     try {
+      const groqApiKey = import.meta.env.VITE_GROQ_API_KEY || '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';
+      
       const response = await fetch(
         "https://api.groq.com/openai/v1/chat/completions",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer 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",
+            Authorization: `Bearer ${groqApiKey}`,
           },
           body: JSON.stringify({
             model: "llama-3.3-70b-versatile",
