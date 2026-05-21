@@ -21,7 +21,7 @@ function Login() {
 
     try {
       const result = await signIn(email, password);
-      
+
       if (result.success) {
         setUser(result.user);
         setIsLoading(false);
@@ -52,12 +52,10 @@ function Login() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 to-transparent" />
         <div className="absolute bottom-12 left-12 right-12 text-primary-foreground">
-          <p className="font-display text-4xl leading-tight text-white">
+          <p className="font-display text-4xl leading-tight">
             "The best parts of my week now happen on a MILO."
           </p>
-          <p className="mt-4 text-sm opacity-80 text-white">
-            — Riya, member since '24
-          </p>
+          <p className="mt-4 text-sm opacity-80">— BUILD YOUR CIRCLE</p>
         </div>
         <Link
           to="/"
