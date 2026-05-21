@@ -54,9 +54,9 @@ Your Milo app is now **100% ready for deployment**! Here's everything that's bee
 These need to be added to Vercel:
 
 ```
-VITE_SUPABASE_URL=https://tonoebhxwstswtzgooxj.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-VITE_GROQ_API_KEY=gsk_ftaabtRDRKAmkkjO1xeTWGdyb3FY...
+VITE_SUPABASE_URL=your_supabase_url_here
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+VITE_GROQ_API_KEY=your_groq_api_key_here
 ```
 
 ---

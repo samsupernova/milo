@@ -85,9 +85,9 @@ Click **"Environment Variables"** and add these 3 variables:
 
 | Name | Value |
 |------|-------|
-| `VITE_SUPABASE_URL` | `https://tonoebhxwstswtzgooxj.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvbm9lYmh4d3N0c3d0emdvb3hqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDAyNjUsImV4cCI6MjA5NDYxNjI2NX0.V1A_DVbq_-aGiEFXehVY-jS4KygtbDZ8hV4X_eBn64E` |
-| `VITE_GROQ_API_KEY` | `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` |
+| `VITE_SUPABASE_URL` | `your_supabase_url_here` |
+| `VITE_SUPABASE_ANON_KEY` | `your_supabase_anon_key_here` |
+| `VITE_GROQ_API_KEY` | `your_groq_api_key_here` |
 
 **Important:** Make sure to add to all environments (Production, Preview, Development)
 

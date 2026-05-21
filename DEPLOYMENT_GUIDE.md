@@ -107,9 +107,9 @@ Click "Environment Variables" and add:
 
 | Name | Value | Notes |
 |------|-------|-------|
-| `VITE_SUPABASE_URL` | `https://tonoebhxwstswtzgooxj.supabase.co` | Your Supabase URL |
-| `VITE_SUPABASE_ANON_KEY` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | Your Supabase anon key |
-| `VITE_GROQ_API_KEY` | `gsk_ftaabtRDRKAmkkjO1xeTWGdyb3FY...` | Your Groq API key |
+| `VITE_SUPABASE_URL` | `your_supabase_url_here` | Your Supabase URL |
+| `VITE_SUPABASE_ANON_KEY` | `your_supabase_anon_key_here` | Your Supabase anon key |
+| `VITE_GROQ_API_KEY` | `your_groq_api_key_here` | Your Groq API key |
 
 **Important:** Add these to all environments (Production, Preview, Development)
 
