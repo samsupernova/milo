@@ -132,7 +132,12 @@ function Discussion() {
   const callMiloBot = async (userMessage) => {
     setIsLoadingBot(true);
     try {
-      const groqApiKey = import.meta.env.VITE_GROQ_API_KEY || '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';
+      const groqApiKey = import.meta.env.VITE_GROQ_API_KEY;
+      
+      if (!groqApiKey) {
+        console.error('Groq API key not configured');
+        throw new Error('API key not configured');
+      }
       
       const response = await fetch(
         "https://api.groq.com/openai/v1/chat/completions",
