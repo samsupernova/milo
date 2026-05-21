@@ -1,0 +1,136 @@
+# Implementation Plan
+
+- [ ] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - Authentication Hangs Indefinitely
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: Mock Supabase authentication to return never-settling promises for both signIn and signUp operations
+  - Test that `signIn(email, password)` hangs indefinitely when `supabase.auth.signInWithPassword()` returns a never-settling promise
+  - Test that `signUp(userData)` hangs indefinitely when `supabase.auth.signUp()` returns a never-settling promise
+  - Test that timeout promises (10s for login, 15s for signup) reject but overall Promise.race() doesn't properly propagate the error
+  - Test that UI loading state remains `true` indefinitely with no error message displayed
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found:
+    - Authentication functions hang indefinitely when Supabase promises don't settle
+    - Timeout promises reject but errors are not caught or displayed
+    - UI remains in loading state with no user feedback
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 1.1, 1.2, 1.3, 1.4_
+
+- [ ] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Successful Authentication and Error Handling
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs (authentication that completes normally)
+  - **Successful Login Preservation**:
+    - Observe: Mock successful authentication with valid credentials on unfixed code
+    - Observe: Function fetches profile from `users` table with `user_interests` joined
+    - Observe: Function fetches joined events from `event_participants` table
+    - Observe: Function fetches hosted events from `event_hosts` table
+    - Observe: Function returns user object with interests array, joined array, and hosted array
+    - Write property-based test: For all valid credentials that authenticate successfully within timeout, result structure matches observed pattern
+  - **Invalid Credentials Preservation**:
+    - Observe: Mock authentication failure with wrong password on unfixed code
+    - Observe: Function returns `{ success: false, error: "Invalid login credentials" }` or similar Supabase error
+    - Write property-based test: For all invalid credentials, error message format is preserved
+  - **Network Error Preservation**:
+    - Observe: Mock network failure during authentication on unfixed code
+    - Observe: Function catches error and returns `{ success: false, error: [error message] }`
+    - Write property-based test: For all network errors, error handling behavior is preserved
+  - **Signup Flow Preservation**:
+    - Observe: Mock successful signup on unfixed code
+    - Observe: Function creates auth user, creates profile in `users` table, adds interests to `user_interests` table
+    - Observe: Function returns `{ success: true, user: [user data] }`
+    - Write property-based test: For all successful signups within timeout, multi-step process and data structure are preserved
+  - Property-based testing generates many test cases for stronger guarantees
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [ ] 3. Fix for authentication hanging indefinitely
+
+  - [ ] 3.1 Implement the `withTimeout` utility function
+    - Create utility function in `src/services/auth.js` that wraps promises with proper timeout handling
+    - Function signature: `withTimeout(promise, timeoutMs, errorMessage)`
+    - Implementation should create a new Promise that:
+      - Sets up a timeout using `setTimeout` that rejects after `timeoutMs`
+      - Attaches `.then()` and `.catch()` handlers to the input promise
+      - Clears the timeout when the promise settles (resolves or rejects)
+      - Ensures the wrapper promise always settles (either with the original result or timeout error)
+    - This ensures timeout rejection properly propagates even if the original promise never settles
+    - _Bug_Condition: isBugCondition(input) where supabaseAuthPromise(input) hangs indefinitely AND timeoutPromise rejects but UI remains in loading state_
+    - _Expected_Behavior: Authentication operations complete (success or failure) within timeout threshold and provide user feedback_
+    - _Preservation: Successful authentication flows, error handling for invalid credentials, profile fetching, and session management remain unchanged_
+    - _Requirements: 1.1, 1.2, 1.3, 1.4, 2.3, 2.4_
+
+  - [ ] 3.2 Update `signIn` function to use `withTimeout`
+    - Replace the current `Promise.race([signInPromise, timeoutPromise])` pattern with `withTimeout(signInPromise, 10000, errorMessage)`
+    - Update timeout error message to: "Login is taking longer than expected. Please check your connection and try again."
+    - Ensure try-catch block properly catches timeout errors
+    - Ensure `setIsLoading(false)` and `setError()` are called in error path (if applicable in component)
+    - Add explicit console.error logging for timeout scenarios
+    - Preserve all existing logic for profile fetching, event loading, and user data structure
+    - _Bug_Condition: isBugCondition(input) where input.operation == 'signIn' AND supabaseAuthPromise hangs_
+    - _Expected_Behavior: signIn completes within 10s with timeout error if authentication hangs_
+    - _Preservation: Successful login flow with profile fetch, events, and user context setting preserved_
+    - _Requirements: 1.1, 1.3, 1.4, 2.1, 2.3, 2.4, 3.1, 3.2, 3.3, 3.4_
+
+  - [ ] 3.3 Update `signUp` function to use `withTimeout`
+    - Replace the current `Promise.race([authPromise, timeoutPromise])` pattern with `withTimeout(authPromise, 15000, errorMessage)`
+    - Update timeout error message to: "Signup is taking longer than expected. Please check your connection and try again."
+    - Ensure try-catch block properly catches timeout errors
+    - Add explicit console.error logging for timeout scenarios
+    - Preserve all existing logic for profile creation, interest addition, and user data return
+    - _Bug_Condition: isBugCondition(input) where input.operation == 'signUp' AND supabaseAuthPromise hangs_
+    - _Expected_Behavior: signUp completes within 15s with timeout error if authentication hangs_
+    - _Preservation: Successful signup flow with profile creation, interest addition, and user data return preserved_
+    - _Requirements: 1.2, 1.3, 1.4, 2.2, 2.3, 2.4, 3.5_
+
+  - [ ] 3.4 Update profile fetch timeout in `signIn`
+    - Replace the profile fetch `Promise.race()` with `withTimeout(profilePromise, 10000, "Profile fetch is taking longer than expected")`
+    - Ensure consistent timeout handling across all async operations in signIn
+    - Preserve existing profile data structure and error handling
+    - _Expected_Behavior: Profile fetch completes within timeout or returns error_
+    - _Preservation: Profile data structure with user_interests, joined events, and hosted events preserved_
+    - _Requirements: 2.1, 2.3, 3.1_
+
+  - [ ] 3.5 Add defensive state management (optional enhancement)
+    - Review Login component (if applicable) to ensure `setIsLoading(false)` is always called
+    - Consider using try-finally blocks to guarantee loading state reset
+    - Ensure error state is properly set when timeout occurs
+    - This is a defensive measure to prevent UI from getting stuck in loading state
+    - _Expected_Behavior: UI loading state is always reset, even if errors occur during error handling_
+    - _Requirements: 1.4, 2.4_
+
+  - [ ] 3.6 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Authentication Completes Within Timeout
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - Verify that authentication operations with hanging promises now timeout correctly
+    - Verify that timeout errors are properly caught and displayed
+    - Verify that UI loading state is reset when timeout occurs
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+
+  - [ ] 3.7 Verify preservation tests still pass
+    - **Property 2: Preservation** - Successful Authentication and Error Handling
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm successful login flow still fetches profile, interests, and events correctly
+    - Confirm invalid credentials still return appropriate error messages
+    - Confirm network errors are still caught and handled properly
+    - Confirm signup flow still creates profile, adds interests, and returns user data
+    - Confirm all tests still pass after fix (no regressions)
+
+- [ ] 4. Checkpoint - Ensure all tests pass
+  - Run all tests (bug condition exploration test + preservation tests)
+  - Verify bug condition test now passes (authentication timeouts work correctly)
+  - Verify preservation tests still pass (no regressions in authentication flows)
+  - Manually test login and signup flows in the application to confirm fix works end-to-end
+  - Ensure all tests pass, ask the user if questions arise
